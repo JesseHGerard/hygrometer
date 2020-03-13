@@ -1,0 +1,19 @@
+{
+  "name": "hardware-test",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "events": {
+    "start": "cls || clear"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  },
+  "dependencies": {
+    "i2c-bus": "^5.1.0",
+    "onoff": "^5.0.1"
+  }
+}
