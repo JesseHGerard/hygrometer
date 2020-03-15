@@ -7,7 +7,7 @@ async function main() {
   relay.write(1);
 } */
 
-const sensor = new TempAndHumidity(1000);
+const sensor = new TempAndHumidity();
 
-sensor.onData = ({ relativeHumidity, celsius }) =>
-  console.log(relativeHumidity, celsius);
+sensor.onRead = ({ humidity, celsius }) => console.log(humidity, celsius);
+sensor.onChangeCelsius = celsius => console.log("Celsius change", celsius);

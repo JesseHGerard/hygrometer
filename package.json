@@ -6,9 +6,6 @@
   "scripts": {
     "start": "nodemon index.js"
   },
-  "events": {
-    "start": "cls || clear"
-  },
   "devDependencies": {
     "nodemon": "^2.0.2"
   },
