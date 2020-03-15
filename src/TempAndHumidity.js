@@ -6,14 +6,34 @@ const measure = Buffer.from(measureHighRepeatability);
 const readLength = 6;
 const measurement = Buffer.alloc(readLength);
 
-/* min safe gap after read, tested on RP4. units are ms */
+/* min safe interval to read after writting to i2c, tested on RP4. units are ms */
 const MIN_GAP = 20;
 
 class TempAndHumidity {
   celsius;
+  setCelsius = nextCelsius => {
+    this.celsius = nextCelsius;
+
+    if (typeof this.onChangeCelsius === "function") {
+      this.onChangeCelsius(nextCelsius);
+    }
+    if (typeof this.onChange === "function") {
+      this.onChange({ celsius: this.celsius, humidity: this.humidity });
+    }
+  };
   celsiusHistory = [];
 
   humidity;
+  setHumidity = nextHumidity => {
+    this.humidity = nextHumidity;
+
+    if (typeof this.onChangeHumidity === "function") {
+      this.onChangeHumidity(nextHumidity);
+    }
+    if (typeof this.onChange === "function") {
+      this.onChange({ celsius: this.celsius, humidity: this.humidity });
+    }
+  };
   humidityHistory = [];
 
   constructor({
@@ -30,7 +50,7 @@ class TempAndHumidity {
         try {
           await bus.i2cWrite(address, measure.length, measure);
         } catch (error) {
-          console.log("write, error");
+          console.error("[TempAndHumidity] I2C write error", error);
         }
 
         setTimeout(async () => {
@@ -45,39 +65,50 @@ class TempAndHumidity {
 
             const humidity = 100 * (rawHumidity / (2 ** 16 - 1));
             const celsius = -45 + 175 * (rawTemperature / (2 ** 16 - 1));
-            // const fahrenheit = -49 + 315 * (rawTemperature / (2 ** 16 - 1));
 
-            if (this.celsiusHistory.length >= historyLength) {
-              this.celsiusHistory.shift();
-            }
-            this.celsiusHistory.push(celsius);
+            this.checkForCelsiusChange(celsius);
+            this.checkForHumidityChange(humidity);
 
             if (typeof this.onRead === "function") {
               this.onRead({ humidity, celsius });
             }
           } catch (error) {
-            console.log("read error", error);
+            console.error("[TempAndHumidity] I2C read error", error);
           }
         }, MIN_GAP);
       }, this.interval);
     });
   }
-  checkForCelsiusChange = () => {
+
+  checkForCelsiusChange = celsius => {
+    if (this.celsiusHistory.length >= this.historyLength) {
+      this.celsiusHistory.shift();
+    }
+    this.celsiusHistory.push(celsius);
+
     const averageCelsius = calculateAverage(this.celsiusHistory);
 
-    if (this.celsius === undefined) {
-      this.celsius = averageCelsius;
-    } else if (
-      Math.abs(this.celsius - averageCelsius) >= this.changeThreshold
+    if (
+      Math.abs(this.celsius - averageCelsius) >= this.changeThreshold ||
+      this.celsius === undefined
     ) {
-      this.celsius = celsius;
-      console.log(this.celsius);
-      if (typeof this.onChange === "function") {
-        this.onChange({ humidity, celsius });
-      }
-      if (typeof this.onChangeCelsius === "function") {
-        this.onChangeCelsius(celsius);
-      }
+      this.setCelsius(averageCelsius);
+    }
+  };
+
+  checkForHumidityChange = humidity => {
+    if (this.humidityHistory.length >= this.historyLength) {
+      this.humidityHistory.shift();
+    }
+    this.humidityHistory.push(humidity);
+
+    const averagehumidity = calculateAverage(this.humidityHistory);
+
+    if (
+      Math.abs(this.humidity - averagehumidity) >= this.changeThreshold ||
+      this.humidity === undefined
+    ) {
+      this.setHumidity(averagehumidity);
     }
   };
 }
