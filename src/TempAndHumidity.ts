@@ -1,17 +1,42 @@
-const { openPromisified } = require("i2c-bus");
+import { openPromisified } from "i2c-bus";
 
 const address = 0x44;
-const measureHighRepeatability = [0x24, 00];
+const measureHighRepeatability = [0x24, 0o0];
 const measure = Buffer.from(measureHighRepeatability);
 const readLength = 6;
 const measurement = Buffer.alloc(readLength);
 
-/* min safe interval to read after writting to i2c, tested on RP4. units are ms */
+/* min safe interval to read after writing to i2c, tested on RP4. units are ms */
 const MIN_GAP = 20;
 
-class TempAndHumidity {
-  celsius;
-  setCelsius = nextCelsius => {
+type Celsius = number;
+type Humidity = number;
+
+interface OnChange {
+  ({}: { celsius: Celsius; humidity: number }): any;
+}
+interface OnChangeCelsius {
+  (nextCelsius: Celsius): any;
+}
+interface OnChangeHumidity {
+  (humidity: Humidity): any;
+}
+interface OnRead {
+  ({ humidity, celsius }: { humidity: Humidity; celsius: Celsius }): any;
+}
+
+export class TempAndHumidity {
+  celsius: Celsius;
+  changeThreshold: number;
+  historyLength: number;
+  humidity: Humidity;
+  interval: number;
+  onChange: OnChange;
+  onChangeCelsius: OnChangeCelsius;
+  onChangeHumidity: OnChangeHumidity;
+  onRead: OnRead;
+
+  setCelsius = (nextCelsius: Celsius) => {
     this.celsius = nextCelsius;
 
     if (typeof this.onChangeCelsius === "function") {
@@ -21,10 +46,9 @@ class TempAndHumidity {
       this.onChange({ celsius: this.celsius, humidity: this.humidity });
     }
   };
-  celsiusHistory = [];
+  celsiusHistory: Celsius[] = [];
 
-  humidity;
-  setHumidity = nextHumidity => {
+  setHumidity = (nextHumidity: Humidity) => {
     this.humidity = nextHumidity;
 
     if (typeof this.onChangeHumidity === "function") {
@@ -34,18 +58,22 @@ class TempAndHumidity {
       this.onChange({ celsius: this.celsius, humidity: this.humidity });
     }
   };
-  humidityHistory = [];
+  humidityHistory: Humidity[] = [];
 
   constructor({
     interval = 1000,
     historyLength = 10,
-    changeThreshold = 0.25
+    changeThreshold = 0.25,
+  }: {
+    interval?: number;
+    historyLength?: number;
+    changeThreshold?: number;
   } = {}) {
     this.historyLength = historyLength;
     this.changeThreshold = changeThreshold;
     this.interval = interval >= 2 * MIN_GAP ? interval : 2 * MIN_GAP;
 
-    openPromisified(1).then(async bus => {
+    openPromisified(1).then(async (bus) => {
       setInterval(async () => {
         try {
           await bus.i2cWrite(address, measure.length, measure);
@@ -80,7 +108,7 @@ class TempAndHumidity {
     });
   }
 
-  checkForCelsiusChange = celsius => {
+  checkForCelsiusChange = (celsius: Celsius) => {
     if (this.celsiusHistory.length >= this.historyLength) {
       this.celsiusHistory.shift();
     }
@@ -96,27 +124,26 @@ class TempAndHumidity {
     }
   };
 
-  checkForHumidityChange = humidity => {
+  checkForHumidityChange = (humidity: Humidity) => {
     if (this.humidityHistory.length >= this.historyLength) {
       this.humidityHistory.shift();
     }
     this.humidityHistory.push(humidity);
 
-    const averagehumidity = calculateAverage(this.humidityHistory);
+    const averageHumidity = calculateAverage(this.humidityHistory);
 
     if (
-      Math.abs(this.humidity - averagehumidity) >= this.changeThreshold ||
+      Math.abs(this.humidity - averageHumidity) >= this.changeThreshold ||
       this.humidity === undefined
     ) {
-      this.setHumidity(averagehumidity);
+      this.setHumidity(averageHumidity);
     }
   };
 }
 
-function calculateAverage(historyArray) {
+function calculateAverage(historyArray: number[]) {
   return (
     historyArray.reduce((accumulator, data) => accumulator + data, 0) /
     historyArray.length
   );
 }
-module.exports = TempAndHumidity;

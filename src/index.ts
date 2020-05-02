@@ -1,6 +1,6 @@
-const TempAndHumidity = require("./TempAndHumidity");
-const Relay = require("./Relay");
-const celsiusToFahrenheit = require("./celsiusToFahrenheit");
+import { TempAndHumidity } from "./TempAndHumidity";
+import { Relay } from "./Relay";
+import { celsiusToFahrenheit } from "./celsiusToFahrenheit";
 
 const MIN_HUMIDITY = 37;
 const MAX_HUMIDITY = 42;

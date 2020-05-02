@@ -1,8 +1,11 @@
-const { Gpio } = require("onoff");
+import { Gpio, BinaryValue } from "onoff";
 
-class Relay {
-  onVoltage = 1;
-  offVoltage = 0;
+export class Relay {
+  pin: number;
+  relay: Gpio;
+
+  onVoltage: BinaryValue = 1;
+  offVoltage: BinaryValue = 0;
 
   isOn = false;
 
@@ -17,7 +20,15 @@ class Relay {
 
   remove = () => this.relay.unexport();
 
-  constructor({ pin, normallyOpen = false, initiallyOn = false }) {
+  constructor({
+    pin,
+    normallyOpen = false,
+    initiallyOn = false,
+  }: {
+    pin: number;
+    normallyOpen?: boolean;
+    initiallyOn?: boolean;
+  }) {
     if (typeof pin !== "number") {
       console.error(`[Relay] Pin number must be provided, received: ${pin}`);
     }
@@ -38,4 +49,4 @@ class Relay {
   }
 }
 
-module.exports = Relay;
+export default Relay;

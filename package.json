@@ -1,13 +1,20 @@
 {
   "name": "hardware-test",
-  "version": "0.0.1",
+  "description": "IOT Hygrometer and Thermometer with Raspberry Pi",
+  "version": "0.1.1",
   "main": "src/index.js",
-  "license": "MIT",
+  "license": "unlicensed",
   "scripts": {
-    "start": "nodemon index.js"
+    "build": "./node_modules/.bin/tsc --build",
+    "build:watch": "./node_modules/.bin/tsc --watch",
+    "dev": "npm run build:watch & nodemon dist/index.js",
+    "install:prod": "nvm install ; npm install --production",
+    "start:prod": "node ./dist"
   },
   "devDependencies": {
-    "nodemon": "^2.0.2"
+    "@types/i2c-bus": "^5.1.0",
+    "nodemon": "^2.0.2",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "i2c-bus": "^5.1.0",
